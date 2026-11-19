@@ -1,0 +1,275 @@
+:root {
+  --tinta: #1c1612;
+  --papel: #f6f0e4;
+  --manilha: #d7c4a2;
+  --marca: #d7263d;
+  --latão: #8d5a2b;
+  --linha: rgba(28, 22, 18, 0.16);
+  --sombra: 10px 12px 0 rgba(28, 22, 18, 0.16);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--tinta);
+  font-family: "Atkinson Hyperlegible", "Palatino Linotype", Palatino, serif;
+  background-color: var(--manilha);
+  background-image:
+    radial-gradient(ellipse at 12% -10%, rgba(255, 250, 240, 0.7), transparent 46%),
+    radial-gradient(ellipse at 110% 110%, rgba(92, 54, 28, 0.22), transparent 40%),
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(70, 42, 18, 0.045) 32px);
+}
+
+.corte {
+  position: fixed;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.c1 { top: 16px; left: 16px; border-top: 1.5px solid var(--tinta); border-left: 1.5px solid var(--tinta); }
+.c2 { top: 16px; right: 16px; border-top: 1.5px solid var(--tinta); border-right: 1.5px solid var(--tinta); }
+.c3 { bottom: 16px; left: 16px; border-bottom: 1.5px solid var(--tinta); border-left: 1.5px solid var(--tinta); }
+.c4 { bottom: 16px; right: 16px; border-bottom: 1.5px solid var(--tinta); border-right: 1.5px solid var(--tinta); }
+
+.mesa {
+  width: min(880px, calc(100% - 56px));
+  margin: 42px auto 56px;
+  padding: 28px 28px 20px;
+  background: var(--papel);
+  border: 1px solid var(--tinta);
+  box-shadow: var(--sombra);
+}
+
+.topo { display: flex; justify-content: space-between; gap: 24px; align-items: end; }
+
+.marca { display: flex; gap: 14px; align-items: center; }
+
+.registro {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--marca);
+  border-radius: 50%;
+  position: relative;
+  flex: none;
+}
+
+.registro::before,
+.registro::after {
+  content: "";
+  position: absolute;
+  background: var(--marca);
+}
+
+.registro::before { width: 2px; height: 40px; left: 11px; top: -8px; }
+.registro::after { height: 2px; width: 40px; top: 11px; left: -8px; }
+
+.olho {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--latão);
+}
+
+h1 {
+  margin: 0;
+  font-family: Fraunces, "Palatino Linotype", Palatino, serif;
+  font-size: 4.4rem;
+  font-weight: 560;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+}
+
+.lede {
+  max-width: 28ch;
+  margin: 0 0 8px;
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+
+.comandos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--linha);
+}
+
+.caminho {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.resumo { margin: 4px 0 0; color: rgba(28, 22, 18, 0.72); }
+
+.botao {
+  border: 1px solid var(--tinta);
+  background: transparent;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.botao:focus-visible,
+.folha:focus-visible,
+.seta:focus-visible {
+  outline: 2px solid var(--marca);
+  outline-offset: 3px;
+}
+
+.botao:disabled { opacity: 0.38; cursor: not-allowed; }
+
+.solido { background: #fffaf2; }
+
+.tinta {
+  background: var(--tinta);
+  color: #f6f0e4;
+  min-width: 132px;
+  font-family: Fraunces, "Palatino Linotype", Palatino, serif;
+  font-size: 1.25rem;
+  font-weight: 560;
+}
+
+.fantasma { border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
+
+.avisos {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--marca);
+  background: rgba(215, 38, 61, 0.06);
+}
+
+.avisos-titulo { margin: 0 0 6px; font-weight: 700; }
+
+.avisos ul { margin: 0; padding-left: 18px; }
+
+.vazio {
+  margin: 22px 0 8px;
+  padding: 36px 16px;
+  text-align: center;
+  border: 1px dashed rgba(28, 22, 18, 0.35);
+  color: rgba(28, 22, 18, 0.7);
+}
+
+.folhas {
+  list-style: none;
+  margin: 18px 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(52vh, 520px);
+  overflow: auto;
+}
+
+.bloco {
+  background: #fffaf2;
+  border: 1px solid rgba(28, 22, 18, 0.22);
+  animation: entra 0.35s ease both;
+  animation-delay: calc(var(--i) * 16ms);
+}
+
+.cabeca {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px 6px 0;
+}
+
+.paginas {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px;
+}
+
+.folha {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px 10px 0;
+  background: #fffaf2;
+  border: 1px solid rgba(28, 22, 18, 0.22);
+  cursor: grab;
+}
+
+.bloco > .folha,
+.bloco .folha {
+  border: 0;
+  background: transparent;
+  animation: none;
+}
+
+.folha:active { cursor: grabbing; }
+.folha.is-dragging { opacity: 0.4; }
+.folha.is-alvo { border-color: var(--marca); }
+
+.tinta-arquivo { align-self: stretch; }
+
+.meta { display: flex; flex-direction: column; min-width: 0; }
+.arquivo { font-weight: 700; overflow-wrap: anywhere; }
+.origem { color: rgba(28, 22, 18, 0.68); font-size: 0.92rem; }
+
+.mover { display: flex; gap: 4px; }
+
+.seta {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(28, 22, 18, 0.3);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.seta:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.folio {
+  font-family: Fraunces, "Palatino Linotype", Palatino, serif;
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  text-align: right;
+}
+
+.rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--linha);
+}
+
+.status { margin: 0; }
+
+.acoes { display: flex; gap: 8px; align-items: center; }
+
+@keyframes entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 720px) {
+  .mesa { width: min(100% - 28px, 880px); margin-top: 28px; padding: 20px 16px 14px; }
+  .topo, .comandos, .rodape { display: flex; flex-direction: column; align-items: stretch; }
+  h1 { font-size: 3.4rem; }
+  .lede { max-width: none; }
+  .folha { grid-template-columns: 8px 1fr auto; }
+  .folio { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bloco { animation: none; }
+}

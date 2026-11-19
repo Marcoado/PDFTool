@@ -16,7 +16,12 @@ internal static class ArquivosPdf
     /// <returns>Os caminhos completos, em ordem de nome.</returns>
     public static IReadOnlyList<string> Listar(string pasta)
     {
-        return SemRepetidos(Directory.EnumerateFiles(pasta), ChaveUnica);
+        var lista = SemRepetidos(Directory.EnumerateFiles(pasta), ChaveUnica);
+        lista.Sort((esquerda, direita) => string.Compare(
+            Path.GetFileName(esquerda),
+            Path.GetFileName(direita),
+            StringComparison.OrdinalIgnoreCase));
+        return lista;
     }
 
     /// <summary>
@@ -32,20 +37,26 @@ internal static class ArquivosPdf
 
         foreach (var caminho in caminhos)
         {
-            if (!string.Equals(Path.GetExtension(caminho), ".pdf", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(caminho)
+                || !string.Equals(Path.GetExtension(caminho), ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
                 continue;
+            }
 
             var unico = chave(caminho);
             if (vistos.Add(unico))
                 lista.Add(unico);
         }
 
-        lista.Sort((esquerda, direita) => string.Compare(
-            Path.GetFileName(esquerda),
-            Path.GetFileName(direita),
-            StringComparison.OrdinalIgnoreCase));
         return lista;
     }
+
+    /// <summary>
+    /// Obtém a identidade estável de um caminho, sem repetir o nome curto do Windows.
+    /// </summary>
+    /// <param name="caminho">O caminho encontrado na pasta ou no seletor de arquivos.</param>
+    /// <returns>O caminho completo usado para comparar arquivos.</returns>
+    public static string Identidade(string caminho) => ChaveUnica(caminho);
 
     private static string ChaveUnica(string caminho)
     {

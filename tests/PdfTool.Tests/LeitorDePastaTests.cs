@@ -40,6 +40,22 @@ public sealed class LeitorDePastaTests
     }
 
     [Fact]
+    public void LerArquivos_MantemAOrdemEscolhidaEContaPaginas()
+    {
+        using var pasta = new PastaTemporaria();
+        FabricaDePdf.Criar(pasta.Arquivo("b.pdf"), 300, 310);
+        FabricaDePdf.Criar(pasta.Arquivo("a.pdf"), 200);
+
+        var resultado = _leitor.LerArquivos(
+            [pasta.Arquivo("b.pdf"), pasta.Arquivo("a.pdf")],
+            pasta.Caminho);
+
+        Assert.Equal(["b.pdf", "a.pdf"], resultado.Arquivos.Select(arquivo => arquivo.Arquivo).ToArray());
+        Assert.Equal(2, resultado.Arquivos[0].Paginas);
+        Assert.Equal(1, resultado.Arquivos[1].Paginas);
+    }
+
+    [Fact]
     public void Ler_NomeLongo_EntraUmaVez()
     {
         using var pasta = new PastaTemporaria();

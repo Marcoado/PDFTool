@@ -97,6 +97,89 @@ public sealed class UnificadorDePdf
         return new ResultadoDeUnificacao(Path.GetFileName(destino), destino, ordem.Count);
     }
 
+    /// <summary>
+    /// Une os arquivos inteiros, na ordem recebida, gravando todas as páginas de cada um.
+    /// </summary>
+    /// <param name="pastaSaida">A pasta onde o PDF unificado será gravado.</param>
+    /// <param name="caminhos">Os PDFs, na ordem do arquivo final.</param>
+    /// <returns>O arquivo gerado.</returns>
+    /// <exception cref="PedidoInvalidoException">A lista está vazia ou algum arquivo não pode ser lido.</exception>
+    /// <exception cref="FalhaDeOperacaoException">O PDF não pôde ser gravado.</exception>
+    public ResultadoDeUnificacao UnificarCaminhos(string pastaSaida, IReadOnlyList<string> caminhos)
+    {
+        if (string.IsNullOrWhiteSpace(pastaSaida))
+            throw new PedidoInvalidoException("Escolha uma pasta.");
+
+        if (caminhos is null || caminhos.Count == 0)
+            throw new PedidoInvalidoException("Inclua ao menos um arquivo.");
+
+        var raiz = Path.GetFullPath(pastaSaida);
+        if (!Directory.Exists(raiz))
+            throw new PedidoInvalidoException("A pasta não existe.");
+
+        var destino = NomesDeSaida.ProximoUnificado(raiz);
+        var abertos = new List<PdfDocument>();
+        PdfDocument? saida = null;
+        var gravou = false;
+        var total = 0;
+        ExceptionDispatchInfo? falha = null;
+
+        try
+        {
+            saida = new PdfDocument();
+            saida.Info.Title = "PDF unificado";
+            saida.Info.Creator = "Folio";
+
+            foreach (var caminho in caminhos)
+            {
+                var cheio = Path.GetFullPath(caminho);
+                var nome = Path.GetFileName(cheio);
+                if (!File.Exists(cheio) || !nome.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    throw new PedidoInvalidoException($"O arquivo {nome} não está disponível.");
+
+                var origem = PdfReader.Open(cheio, PdfDocumentOpenMode.Import);
+                abertos.Add(origem);
+                if (origem.PageCount == 0)
+                    throw new PedidoInvalidoException($"{nome} não tem páginas.");
+
+                for (var indice = 0; indice < origem.PageCount; indice++)
+                    saida.AddPage(origem.Pages[indice]);
+
+                total += origem.PageCount;
+            }
+
+            saida.Save(destino);
+            gravou = true;
+        }
+        catch (Exception excecao)
+        {
+            falha = ExceptionDispatchInfo.Capture(Traduzir(excecao));
+        }
+        finally
+        {
+            saida?.Dispose();
+            foreach (var documento in abertos)
+                documento.Dispose();
+        }
+
+        if (!gravou && File.Exists(destino))
+        {
+            try
+            {
+                File.Delete(destino);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+
+        falha?.Throw();
+        return new ResultadoDeUnificacao(Path.GetFileName(destino), destino, total);
+    }
+
     private static Exception Traduzir(Exception excecao)
     {
         if (excecao is PedidoInvalidoException or FalhaDeOperacaoException)

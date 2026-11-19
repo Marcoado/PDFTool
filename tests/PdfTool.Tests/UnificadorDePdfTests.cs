@@ -39,6 +39,23 @@ public sealed class UnificadorDePdfTests
         Assert.Equal([200d], FabricaDePdf.Larguras(resultado.Caminho));
     }
 
+    [Fact]
+    public void UnificarCaminhos_IncluiTodasAsPaginasNaOrdemDosArquivos()
+    {
+        using var pasta = new PastaTemporaria();
+        FabricaDePdf.Criar(pasta.Arquivo("a.pdf"), 210, 220);
+        FabricaDePdf.Criar(pasta.Arquivo("b.pdf"), 310);
+
+        var resultado = _unificador.UnificarCaminhos(pasta.Caminho,
+        [
+            pasta.Arquivo("b.pdf"),
+            pasta.Arquivo("a.pdf")
+        ]);
+
+        Assert.Equal(3, resultado.TotalPaginas);
+        Assert.Equal([310d, 210d, 220d], FabricaDePdf.Larguras(resultado.Caminho));
+    }
+
     [Theory]
     [InlineData(@"..\fora.pdf")]
     [InlineData("pasta/arquivo.pdf")]

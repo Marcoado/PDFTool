@@ -2,16 +2,16 @@
 
 Aplicação local em .NET para juntar vários PDFs de uma pasta em um único arquivo.
 
-Você escolhe a pasta no Windows, vê cada arquivo uma vez e reordena as páginas. O resultado é gravado na mesma pasta como `unificado.pdf`. Se esse nome já existir, o próximo arquivo sai como `unificado-2.pdf`, `unificado-3.pdf` e assim por diante.
+Você escolhe uma pasta ou alguns PDFs no Windows, vê cada arquivo uma vez e muda a ordem. Se o arquivo tiver várias páginas, a linha informa quantas, e elas entram juntas no PDF final. O resultado é gravado como `unificado.pdf`. Se esse nome já existir, o próximo arquivo sai como `unificado-2.pdf`, `unificado-3.pdf` e assim por diante.
 
 O app abre no navegador, em `http://127.0.0.1:5088`, e só escuta na própria máquina. A leitura e a gravação dos PDFs são feitas em C#, com a biblioteca [PDFsharp](https://docs.pdfsharp.net/) (licença MIT).
 
 ## O que dá para fazer
 
-- Escolher uma pasta do computador.
-- Ler só os `.pdf` dessa pasta, sem entrar em subpastas.
-- Ver as páginas de cada arquivo e mudar a ordem arrastando a linha ou usando as setas.
-- Gerar um PDF único sem sobrescrever um arquivo que já existe.
+- Escolher uma pasta ou apenas alguns PDFs.
+- Ver cada arquivo uma vez. Se ele tiver várias páginas, a linha informa quantas.
+- Mudar a ordem digitando a posição, pelos botões Topo, Subir, Descer e Fim, ou arrastando a linha.
+- Gerar um PDF único sem sobrescrever um arquivo que já existe. As páginas de cada arquivo entram na ordem original.
 - Abrir a pasta no Explorer no arquivo que acabou de ser gravado.
 
 ## Requisitos

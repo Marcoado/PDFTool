@@ -1,4 +1,5 @@
 const escolherBtn = document.querySelector("#escolher");
+const arquivosBtn = document.querySelector("#arquivos");
 const unificarBtn = document.querySelector("#unificar");
 const revelarBtn = document.querySelector("#revelar");
 const pastaEl = document.querySelector("#pasta");
@@ -9,52 +10,50 @@ const listaAvisos = document.querySelector("#lista-avisos");
 const vazioEl = document.querySelector("#vazio");
 const listaEl = document.querySelector("#lista");
 
-let paginas = [];
+let arquivos = [];
 let arrastando = null;
 let ocupado = false;
 
-escolherBtn.addEventListener("click", escolherPasta);
+escolherBtn.addEventListener("click", () => escolher("/api/pasta", "Aguardando a janela de pasta do Windows…"));
+arquivosBtn.addEventListener("click", () => escolher("/api/arquivos", "Aguardando a janela de arquivos do Windows…"));
 unificarBtn.addEventListener("click", unificar);
 revelarBtn.addEventListener("click", revelar);
 
-async function escolherPasta() {
-  definirOcupacao(true, "Aguardando a janela de pasta do Windows…");
+async function escolher(url, espera) {
+  definirOcupacao(true, espera);
   try {
-    const resposta = await fetch("/api/pasta", { method: "POST" });
+    const resposta = await fetch(url, { method: "POST" });
     const corpo = await lerJson(resposta);
-    if (!resposta.ok) throw new Error(corpo.mensagem || "Não foi possível ler a pasta.");
+    if (!resposta.ok) throw new Error(corpo.mensagem || "Não foi possível ler os PDFs.");
     if (corpo.cancelado) {
-      statusEl.textContent = paginas.length
-        ? descreverLista()
-        : "Seleção cancelada.";
+      statusEl.textContent = arquivos.length ? descreverLista() : "Seleção cancelada.";
       return;
     }
 
-    paginas = Array.isArray(corpo.paginas) ? corpo.paginas : [];
-    pastaEl.textContent = corpo.pasta || "Pasta escolhida";
+    arquivos = Array.isArray(corpo.arquivos) ? corpo.arquivos : [];
+    pastaEl.textContent = corpo.pasta || "Seleção pronta";
     revelarBtn.hidden = true;
     mostrarAvisos(corpo.avisos);
     renderizar(null);
-    statusEl.textContent = paginas.length
+    statusEl.textContent = arquivos.length
       ? descreverLista()
-      : "Nenhum PDF nesta pasta.";
+      : "Nenhum PDF válido nessa seleção.";
   } catch (erro) {
-    statusEl.textContent = erro instanceof Error ? erro.message : "Não foi possível ler a pasta.";
+    statusEl.textContent = erro instanceof Error ? erro.message : "Não foi possível ler os PDFs.";
   } finally {
     definirOcupacao(false);
   }
 }
 
 async function unificar() {
-  if (!paginas.length || ocupado) return;
-  definirOcupacao(true, `Unindo ${paginas.length} página(s)…`);
+  if (!arquivos.length || ocupado) return;
+  const total = arquivos.reduce((soma, item) => soma + item.paginas, 0);
+  definirOcupacao(true, `Unindo ${total} página(s)…`);
   try {
     const resposta = await fetch("/api/unificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        paginas: paginas.map((item) => ({ arquivo: item.arquivo, pagina: item.pagina }))
-      })
+      body: JSON.stringify({ ids: arquivos.map((item) => item.id) })
     });
     const corpo = await lerJson(resposta);
     if (!resposta.ok) throw new Error(corpo.mensagem || "Não foi possível unificar.");
@@ -79,81 +78,30 @@ async function revelar() {
 
 function renderizar(foco) {
   listaEl.replaceChildren();
-  const temPaginas = paginas.length > 0;
-  vazioEl.hidden = temPaginas;
-  listaEl.hidden = !temPaginas;
-  resumoEl.textContent = temPaginas
-    ? descreverLista() + " Cada arquivo entra uma vez."
-    : "Cada arquivo da pasta entra uma vez. Arraste as páginas para mudar a ordem do PDF.";
+  const temArquivos = arquivos.length > 0;
+  vazioEl.hidden = temArquivos;
+  listaEl.hidden = !temArquivos;
+  resumoEl.textContent = temArquivos
+    ? `${descreverLista()} Use a posição, os botões ou arraste a linha.`
+    : "Escolha a pasta inteira ou só os PDFs que entram no arquivo.";
 
-  agrupar().forEach((grupo, indiceGrupo) => {
-    const bloco = document.createElement("li");
-    bloco.className = "bloco";
-    bloco.style.setProperty("--i", String(Math.min(indiceGrupo, 14)));
+  arquivos.forEach((item, indice) => listaEl.append(criarLinha(item, indice)));
+  unificarBtn.disabled = !temArquivos || ocupado;
 
-    if (grupo.itens.length === 1) {
-      bloco.append(criarLinha(grupo.itens[0].item, grupo.itens[0].indice, true));
-    } else {
-      bloco.append(criarCabeca(grupo), criarPaginas(grupo));
-    }
-
-    listaEl.append(bloco);
-  });
-
-  unificarBtn.disabled = !temPaginas || ocupado;
   if (foco !== null) {
     const alvo = listaEl.querySelector(`[data-indice="${foco}"]`);
     if (alvo instanceof HTMLElement) alvo.focus();
   }
 }
 
-function agrupar() {
-  const grupos = [];
-  paginas.forEach((item, indice) => {
-    const ultimo = grupos[grupos.length - 1];
-    if (ultimo && ultimo.arquivo === item.arquivo)
-      ultimo.itens.push({ item, indice });
-    else
-      grupos.push({ arquivo: item.arquivo, itens: [{ item, indice }] });
-  });
-  return grupos;
-}
-
-function criarCabeca(grupo) {
-  const cabeca = document.createElement("div");
-  cabeca.className = "cabeca";
-  const faixa = document.createElement("span");
-  faixa.className = "tinta-arquivo";
-  faixa.style.background = corDoArquivo(grupo.arquivo);
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  const arquivo = document.createElement("span");
-  arquivo.className = "arquivo";
-  arquivo.textContent = grupo.arquivo;
-  const origem = document.createElement("span");
-  origem.className = "origem";
-  origem.textContent = `${grupo.itens.length} páginas`;
-  meta.append(arquivo, origem);
-  cabeca.append(faixa, meta);
-  return cabeca;
-}
-
-function criarPaginas(grupo) {
-  const ol = document.createElement("ol");
-  ol.className = "paginas";
-  grupo.itens.forEach(({ item, indice }) => ol.append(criarLinha(item, indice, false)));
-  return ol;
-}
-
-function criarLinha(item, indice, mostrarArquivo) {
+function criarLinha(item, indice) {
   const li = document.createElement("li");
-  li.className = "folha";
+  li.className = "arquivo-linha";
   li.draggable = true;
   li.tabIndex = 0;
   li.dataset.indice = String(indice);
-  li.setAttribute("aria-label", mostrarArquivo
-    ? `${item.arquivo}, 1 página`
-    : `${item.arquivo}, página ${item.pagina}`);
+  li.style.setProperty("--i", String(Math.min(indice, 14)));
+  li.setAttribute("aria-label", `${rotulo(item)}. ${textoPaginas(item.paginas)}`);
 
   const faixa = document.createElement("span");
   faixa.className = "tinta-arquivo";
@@ -161,45 +109,64 @@ function criarLinha(item, indice, mostrarArquivo) {
 
   const meta = document.createElement("div");
   meta.className = "meta";
-  const arquivo = document.createElement("span");
-  arquivo.className = "arquivo";
-  arquivo.textContent = mostrarArquivo ? item.arquivo : `página ${item.pagina}`;
+  const nome = document.createElement("span");
+  nome.className = "arquivo";
+  nome.textContent = rotulo(item);
   const origem = document.createElement("span");
   origem.className = "origem";
-  origem.textContent = mostrarArquivo ? "1 página" : `de ${item.totalNoArquivo}`;
-  meta.append(arquivo, origem);
+  origem.textContent = textoPaginas(item.paginas);
+  meta.append(nome, origem);
 
-  const moverBox = document.createElement("div");
-  moverBox.className = "mover";
-  moverBox.append(
-    criarSeta("Subir", "↑", indice === 0, () => mover(indice, indice - 1)),
-    criarSeta("Descer", "↓", indice === paginas.length - 1, () => mover(indice, indice + 1))
+  const controles = document.createElement("div");
+  controles.className = "controles";
+  const posicao = document.createElement("label");
+  posicao.className = "posicao";
+  posicao.append("Posição ");
+  const campo = document.createElement("input");
+  campo.type = "number";
+  campo.min = "1";
+  campo.max = String(arquivos.length);
+  campo.value = String(indice + 1);
+  campo.setAttribute("aria-label", `Posição de ${item.arquivo}`);
+  campo.addEventListener("change", () => {
+    const destino = Number(campo.value) - 1;
+    moverPara(indice, destino);
+  });
+  posicao.append(campo);
+  controles.append(
+    posicao,
+    criarAcao("Topo", indice === 0, () => moverPara(indice, 0)),
+    criarAcao("Subir", indice === 0, () => moverPara(indice, indice - 1)),
+    criarAcao("Descer", indice === arquivos.length - 1, () => moverPara(indice, indice + 1)),
+    criarAcao("Fim", indice === arquivos.length - 1, () => moverPara(indice, arquivos.length - 1))
   );
 
-  const folio = document.createElement("span");
-  folio.className = "folio";
-  folio.textContent = String(indice + 1).padStart(2, "0");
-
-  li.append(faixa, meta, moverBox, folio);
+  li.append(faixa, meta, controles);
   ligarArraste(li, indice);
   li.addEventListener("keydown", (evento) => {
+    if (evento.target instanceof HTMLInputElement) return;
     if (evento.key === "ArrowUp") {
       evento.preventDefault();
-      mover(indice, indice - 1);
+      moverPara(indice, indice - 1);
     } else if (evento.key === "ArrowDown") {
       evento.preventDefault();
-      mover(indice, indice + 1);
+      moverPara(indice, indice + 1);
+    } else if (evento.key === "Home") {
+      evento.preventDefault();
+      moverPara(indice, 0);
+    } else if (evento.key === "End") {
+      evento.preventDefault();
+      moverPara(indice, arquivos.length - 1);
     }
   });
   return li;
 }
 
-function criarSeta(rotulo, texto, desativada, aoClicar) {
+function criarAcao(rotuloBotao, desativada, aoClicar) {
   const botao = document.createElement("button");
   botao.type = "button";
-  botao.className = "seta";
-  botao.textContent = texto;
-  botao.setAttribute("aria-label", rotulo);
+  botao.className = "acao";
+  botao.textContent = rotuloBotao;
   botao.disabled = desativada;
   botao.addEventListener("click", aoClicar);
   return botao;
@@ -207,7 +174,7 @@ function criarSeta(rotulo, texto, desativada, aoClicar) {
 
 function ligarArraste(li, indice) {
   li.addEventListener("dragstart", (evento) => {
-    if (evento.target instanceof Element && evento.target.closest("button")) {
+    if (evento.target instanceof Element && evento.target.closest("button, input, label")) {
       evento.preventDefault();
       return;
     }
@@ -230,23 +197,39 @@ function ligarArraste(li, indice) {
     evento.preventDefault();
     li.classList.remove("is-alvo");
     const de = arrastando ?? Number(evento.dataTransfer.getData("text/plain"));
-    mover(de, indice);
+    moverPara(de, indice);
   });
 }
 
-function mover(de, para) {
-  if (para < 0 || para >= paginas.length || de === para || Number.isNaN(de)) return;
-  const [item] = paginas.splice(de, 1);
-  paginas.splice(para, 0, item);
-  renderizar(para);
+function moverPara(de, para) {
+  if (Number.isNaN(de) || Number.isNaN(para)) return;
+  const destino = Math.max(0, Math.min(arquivos.length - 1, para));
+  if (de < 0 || de >= arquivos.length || de === destino) {
+    renderizar(de);
+    return;
+  }
+  const [item] = arquivos.splice(de, 1);
+  arquivos.splice(destino, 0, item);
+  renderizar(destino);
   statusEl.textContent = descreverLista();
 }
 
+function textoPaginas(quantidade) {
+  return quantidade === 1 ? "1 página" : `contém ${quantidade} páginas`;
+}
+
+function rotulo(item) {
+  const repetido = arquivos.filter((outro) => outro.arquivo === item.arquivo).length > 1;
+  if (!repetido) return item.arquivo;
+  const pasta = item.pasta ? item.pasta.split(/[/\\]/).filter(Boolean).pop() : "";
+  return pasta ? `${item.arquivo} (${pasta})` : item.arquivo;
+}
+
 function descreverLista() {
-  const arquivos = new Set(paginas.map((item) => item.arquivo));
-  const rotuloPagina = paginas.length === 1 ? "página" : "páginas";
-  const rotuloArquivo = arquivos.size === 1 ? "arquivo" : "arquivos";
-  return `${paginas.length} ${rotuloPagina} de ${arquivos.size} ${rotuloArquivo}.`;
+  const paginas = arquivos.reduce((soma, item) => soma + item.paginas, 0);
+  const rotuloArquivo = arquivos.length === 1 ? "arquivo" : "arquivos";
+  const rotuloPagina = paginas === 1 ? "página" : "páginas";
+  return `${arquivos.length} ${rotuloArquivo}, ${paginas} ${rotuloPagina}.`;
 }
 
 function mostrarAvisos(avisos) {
@@ -263,7 +246,8 @@ function mostrarAvisos(avisos) {
 function definirOcupacao(ativo, mensagem) {
   ocupado = ativo;
   escolherBtn.disabled = ativo;
-  unificarBtn.disabled = ativo || paginas.length === 0;
+  arquivosBtn.disabled = ativo;
+  unificarBtn.disabled = ativo || arquivos.length === 0;
   if (mensagem) statusEl.textContent = mensagem;
 }
 
